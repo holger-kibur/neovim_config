@@ -1,0 +1,6 @@
+# Ignore everything except init stuff
+*
+!init.lua
+!init_*.lua
+!.gitignore
+
