@@ -20,6 +20,10 @@ require('packer').startup(function(use)
     use 'tomasiser/vim-code-dark'
     use {'neoclide/coc.nvim', branch = 'release'}
     use 'Townk/vim-autoclose'
+    use {
+        'nvim-treesitter/nvim-treesitter',
+        run = function() require('nvim-treesitter.install').update({ with_sync = true }) end,
+    }
 end)
 
 -- Leader mappings
@@ -30,10 +34,14 @@ vim.keymap.set('n', '<Tab>', ':NERDTreeToggle<CR>', {silent=true})
 vim.keymap.set('n', '<C-s>', ':w<CR>')
 vim.keymap.set('n', '<Leader>w', ':bd<CR>')
 vim.keymap.set('n', '<Leader>d', '<C-$>d0x')
+vim.keymap.set('n', '<Leader>j', '10j')
+vim.keymap.set('n', '<Leader>k', '10k')
+vim.keymap.set('n', '<Leader>n', 'a<CR><Esc>')
 
 -- Insert mode mappings
 vim.keymap.set('i', '<C-s>', '<Esc>:w<CR>')
-vim.keymap.set('i', '<S-Tab>', 'coc#pum#visible() ? coc#pum#next(1) : \"\\<S-Tab>\"', {noremap=true, expr=true})
+vim.keymap.set('i', '<Tab>', 'coc#pum#visible() ? coc#pum#next(1) : \"\\<Tab>\"', {noremap=true, expr=true})
+vim.keymap.set('i', '<S-Tab>', 'coc#pum#visible() ? coc#_select_confirm() : \"\\<Tab>\"', {noremap=true, expr=true})
 
 -- Options
 local set = vim.opt
@@ -47,6 +55,28 @@ set.number = true
 
 -- Config
 vim.g.coc_global_extensions = {'coc-pyright'}
+
+require('nvim-treesitter.configs').setup({
+  -- A list of parser names, or "all"
+  ensure_installed = { "python", "lua" },
+
+  -- Install parsers synchronously (only applied to `ensure_installed`)
+  sync_install = false,
+
+  -- Automatically install missing parsers when entering buffer
+  auto_install = true,
+
+  highlight = {
+    -- `false` will disable the whole extension
+    enable = true,
+
+    -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
+    -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
+    -- Using this option may slow down your editor, and you may see some duplicate highlights.
+    -- Instead of true it can also be a list of languages
+    additional_vim_regex_highlighting = false,
+  },
+})
 
 -- Commands
 vim.cmd('colorscheme codedark')
