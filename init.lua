@@ -32,10 +32,9 @@ vim.g.mapleader = " "
 -- Normal mode mappings
 vim.keymap.set('n', '<Tab>', ':NERDTreeToggle<CR>', {silent=true})
 vim.keymap.set('n', '<C-s>', ':w<CR>')
-vim.keymap.set('n', '<Leader>w', ':bd<CR>')
-vim.keymap.set('n', '<Leader>d', '<C-$>d0x')
-vim.keymap.set('n', '<Leader>j', '10j')
-vim.keymap.set('n', '<Leader>k', '10k')
+vim.keymap.set('n', '<Leader>tj', '<C-w><S-j>:resize 10<CR>')
+vim.keymap.set('n', '<Leader>tl', '<C-w><S-l>:resize 80<CR>')
+vim.keymap.set('n', '<Leader>sf', ':Telescope find_files<CR>', {silent=true})
 vim.keymap.set('n', '<Leader>n', 'a<CR><Esc>')
 
 -- Insert mode mappings
@@ -69,7 +68,6 @@ require('nvim-treesitter.configs').setup({
   highlight = {
     -- `false` will disable the whole extension
     enable = true,
-
     -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
     -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
     -- Using this option may slow down your editor, and you may see some duplicate highlights.
@@ -78,6 +76,19 @@ require('nvim-treesitter.configs').setup({
   },
 })
 
--- Commands
+local function with_tcodes(str)
+    return vim.api.nvim_replace_termcodes(str, true, true, true)
+end
+    
+-- Startup commands
 vim.cmd('colorscheme codedark')
 
+-- Create small terminal at the bottom
+vim.cmd(with_tcodes(
+    "normal <C-w>s<C-w><S-j>"
+))
+vim.cmd("terminal")
+vim.cmd('resize 10')
+vim.cmd(with_tcodes(
+   "normal <C-w><C-w>" 
+))
