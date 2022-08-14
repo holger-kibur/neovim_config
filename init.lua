@@ -35,7 +35,10 @@ vim.keymap.set('n', '<C-s>', ':w<CR>')
 vim.keymap.set('n', '<Leader>tj', '<C-w><S-j>:resize 10<CR>')
 vim.keymap.set('n', '<Leader>tl', '<C-w><S-l>:resize 80<CR>')
 vim.keymap.set('n', '<Leader>sf', ':Telescope find_files<CR>', {silent=true})
-vim.keymap.set('n', '<Leader>n', 'a<CR><Esc>')
+vim.keymap.set('n', '<C-j>', 'm`:silent +g/\\m^\\s*$/d<CR>``:noh<CR>', {silent=true})
+vim.keymap.set('n', '<C-k>', 'm`:silent -g/\\m^\\s*$/d<CR>``:noh<CR>', {silent=true})
+vim.keymap.set('n', '<A-j>', ':set paste<CR>m`o<Esc>``:set nopaste<CR>', {silent=true})
+vim.keymap.set('n', '<A-k>', ':set paste<CR>m`O<Esc>``:set nopaste<CR>', {silent=true})
 
 -- Insert mode mappings
 vim.keymap.set('i', '<C-s>', '<Esc>:w<CR>')
@@ -51,6 +54,7 @@ set.softtabstop = 4
 set.shiftwidth = 4
 set.relativenumber = true
 set.number = true
+set.scrolloff = 15
 
 -- Config
 vim.g.coc_global_extensions = {'coc-pyright'}
