@@ -1,8 +1,7 @@
 -- Install packer if not installed already
 local install_path = vim.fn.stdpath 'data' .. '/site/pack/packer/start/packer.nvim'
-local is_bootstrap = false
 if vim.fn.empty(vim.fn.glob(install_path)) > 0 then
-  is_bootstrap = true
+
   vim.fn.execute('!git clone https://github.com/wbthomason/packer.nvim ' .. install_path)
   vim.cmd [[packadd packer.nvim]]
 end
@@ -12,13 +11,18 @@ require('packer').startup(function(use)
     use 'wbthomason/packer.nvim'
     use 'preservim/nerdtree'
     use 'tpope/vim-commentary'
+    use 'neovim/nvim-lspconfig'
+    use 'hrsh7th/nvim-cmp'
+    use 'hrsh7th/cmp-nvim-lsp'
+    use 'hrsh7th/cmp-buffer'
+    use 'saadparwaiz1/cmp_luasnip'
+    use 'L3MON4D3/LuaSnip'
     use {
-        'nvim-telescope/telescope.nvim', 
+        'nvim-telescope/telescope.nvim',
         tag = '0.1.0',
         requires = { {'nvim-lua/plenary.nvim'} },
     }
     use 'tomasiser/vim-code-dark'
-    use {'neoclide/coc.nvim', branch = 'release'}
     use 'Townk/vim-autoclose'
     use {
         'nvim-treesitter/nvim-treesitter',
@@ -39,11 +43,11 @@ vim.keymap.set('n', '<C-j>', 'm`:silent +g/\\m^\\s*$/d<CR>``:noh<CR>', {silent=t
 vim.keymap.set('n', '<C-k>', 'm`:silent -g/\\m^\\s*$/d<CR>``:noh<CR>', {silent=true})
 vim.keymap.set('n', '<A-j>', ':set paste<CR>m`o<Esc>``:set nopaste<CR>', {silent=true})
 vim.keymap.set('n', '<A-k>', ':set paste<CR>m`O<Esc>``:set nopaste<CR>', {silent=true})
+vim.keymap.set('n', '<C-d>', '<C-d>zz', {noremap=true})
+vim.keymap.set('n', '<C-u>', '<C-u>zz', {noremap=true})
 
 -- Insert mode mappings
 vim.keymap.set('i', '<C-s>', '<Esc>:w<CR>')
-vim.keymap.set('i', '<Tab>', 'coc#pum#visible() ? coc#pum#next(1) : \"\\<Tab>\"', {noremap=true, expr=true})
-vim.keymap.set('i', '<S-Tab>', 'coc#pum#visible() ? coc#_select_confirm() : \"\\<Tab>\"', {noremap=true, expr=true})
 
 -- Options
 local set = vim.opt
@@ -56,9 +60,7 @@ set.relativenumber = true
 set.number = true
 set.scrolloff = 15
 
--- Config
-vim.g.coc_global_extensions = {'coc-pyright'}
-
+-- Treesitter config
 require('nvim-treesitter.configs').setup({
   -- A list of parser names, or "all"
   ensure_installed = { "python", "lua" },
@@ -80,19 +82,120 @@ require('nvim-treesitter.configs').setup({
   },
 })
 
-local function with_tcodes(str)
-    return vim.api.nvim_replace_termcodes(str, true, true, true)
-end
-    
+-- nvim-lsp config
+local lsp_defaults = {
+  flags = {
+    debounce_text_changes = 500,
+  },
+  capabilities = require('cmp_nvim_lsp').update_capabilities(
+    vim.lsp.protocol.make_client_capabilities()
+  ),
+  on_attach = function(client, bufnr)
+    vim.api.nvim_exec_autocmds('User', {pattern = 'LspAttached'})
+  end
+}
+
+local lsp_config = require('lspconfig')
+lsp_config.util.default_config = vim.tbl_deep_extend(
+  'force',
+  lsp_config.util.default_config,
+  lsp_defaults
+)
+
+-- For python
+lsp_config.pyright.setup({
+    on_attach = function(client, bufnum)
+        lsp_config.util.default_config.on_attach(client, bufnum)
+    end
+})
+
+-- For lua
+lsp_config.sumneko_lua.setup({
+    single_file_support = true,
+    on_attach = function(client, bufnum)
+        lsp_config.util.default_config.on_attach(client, bufnum)
+    end
+})
+
+-- Autocompletion
+local cmp = require('cmp')
+local luasnip = require('luasnip')
+local select_opts = {behavior = cmp.SelectBehavior.Select}
+cmp.setup({
+    snippet = {
+        expand = function(args)
+            luasnip.lsp_expand(args.body)
+        end
+    },
+    sources = {
+        { name = 'nvim_lsp' },
+        { name = 'luasnip' },
+        { name = 'buffer' }
+    },
+    mapping = {
+        ['<C-j>'] = cmp.mapping.select_next_item(select_opts),
+        ['<C-k>'] = cmp.mapping.select_prev_item(select_opts),
+        ["<Tab>"] = cmp.mapping(
+            function (fallback)
+                if cmp.visible() then
+                    cmp.confirm({select=true})
+                else
+                    fallback()
+                end
+            end,
+            {'i', 's'}
+        )
+    }
+})
+
+-- LSP attach
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'LspAttached',
+  desc = 'LSP actions',
+  callback = function()
+    local bufmap = function(mode, lhs, rhs)
+      local opts = {buffer = true}
+      vim.keymap.set(mode, lhs, rhs, opts)
+    end
+
+    -- Displays hover information about the symbol under the cursor
+    bufmap('n', 'K', '<cmd>lua vim.lsp.buf.hover()<cr>')
+
+    -- Jump to the definition
+    bufmap('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<cr>')
+
+    -- Jump to declaration
+    bufmap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<cr>')
+
+    -- Lists all the implementations for the symbol under the cursor
+    bufmap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<cr>')
+
+    -- Jumps to the definition of the type symbol
+    bufmap('n', 'go', '<cmd>lua vim.lsp.buf.type_definition()<cr>')
+
+    -- Lists all the references 
+    bufmap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<cr>')
+
+    -- Displays a function's signature information
+    bufmap('n', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<cr>')
+
+    -- Renames all references to the symbol under the cursor
+    bufmap('n', '<F2>', '<cmd>lua vim.lsp.buf.rename()<cr>')
+
+    -- Selects a code action available at the current cursor position
+    bufmap('n', '<F4>', '<cmd>lua vim.lsp.buf.code_action()<cr>')
+    bufmap('x', '<F4>', '<cmd>lua vim.lsp.buf.range_code_action()<cr>')
+
+    -- Show diagnostics in a floating window
+    bufmap('n', 'gl', '<cmd>lua vim.diagnostic.open_float()<cr>')
+
+    -- Move to the previous diagnostic
+    bufmap('n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<cr>')
+
+    -- Move to the next diagnostic
+    bufmap('n', ']d', '<cmd>lua vim.diagnostic.goto_next()<cr>')
+  end
+})
+
 -- Startup commands
 vim.cmd('colorscheme codedark')
-
--- Create small terminal at the bottom
-vim.cmd(with_tcodes(
-    "normal <C-w>s<C-w><S-j>"
-))
-vim.cmd("terminal")
-vim.cmd('resize 10')
-vim.cmd(with_tcodes(
-   "normal <C-w><C-w>" 
-))
