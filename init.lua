@@ -63,7 +63,7 @@ set.scrolloff = 15
 -- Treesitter config
 require('nvim-treesitter.configs').setup({
   -- A list of parser names, or "all"
-  ensure_installed = { "python", "lua" },
+  ensure_installed = { "python", "lua", "c", "cpp" },
 
   -- Install parsers synchronously (only applied to `ensure_installed`)
   sync_install = false,
@@ -112,6 +112,20 @@ lsp_config.pyright.setup({
 -- For lua
 lsp_config.sumneko_lua.setup({
     single_file_support = true,
+    on_attach = function(client, bufnum)
+        lsp_config.util.default_config.on_attach(client, bufnum)
+    end
+})
+
+-- For C/C++
+lsp_config.clangd.setup({
+    on_attach = function(client, bufnum)
+        lsp_config.util.default_config.on_attach(client, bufnum)
+    end
+})
+
+-- For rust
+lsp_config.rust_analyzer.setup({
     on_attach = function(client, bufnum)
         lsp_config.util.default_config.on_attach(client, bufnum)
     end
@@ -199,3 +213,14 @@ vim.api.nvim_create_autocmd('User', {
 
 -- Startup commands
 vim.cmd('colorscheme codedark')
+
+-- Brace autoexpansion
+function IsSurroundedByBraces()
+    local col = vim.api.nvim_win_get_cursor(0)[2]
+    return (col ~= 0 and vim.api.nvim_get_current_line():sub(col, col+1):match("{}"))
+end
+
+vim.keymap.set("i", "<CR>", function()
+    return IsSurroundedByBraces() and "<CR><CR><Esc>k<S-s>" or "<CR>"
+end, {expr=true, noremap=true})
+
